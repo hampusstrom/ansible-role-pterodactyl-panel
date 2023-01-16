@@ -1,0 +1,10 @@
+---
+# vars file for pterodactyl_panel
+ptero_cache: redis
+ptero_session: redis
+ptero_queue: redis
+ptero_composer_folder: "/usr/local/bin"
+ptero_composer_path: "{{ ptero_composer_folder }}/composer"
+ptero_php_path: "/usr/bin/php"
+ptero_letsencrypt_cert_path: /etc/letsencrypt/live/{{ ptero_panel_domain_name }}//fullchain.pem
+ptero_letsencrypt_key_path: /etc/letsencrypt/live/{{ ptero_panel_domain_name }}/privkey.pem

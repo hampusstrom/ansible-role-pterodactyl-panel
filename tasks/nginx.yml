@@ -1,0 +1,6 @@
+---
+
+- name: Debian | Setup nginx for pterodactyl.
+  ansible.builtin.include_tasks:
+    file: debian/nginx.yml
+  when: ansible_os_family == "Debian"

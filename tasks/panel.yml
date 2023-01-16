@@ -1,0 +1,138 @@
+- name: Create panel directory.
+  ansible.builtin.file:
+    path: "{{ ptero_install_dir }}"
+    state: directory
+    mode: 0750
+    owner: www-data
+    group: www-data
+
+- name: Download and unpack latest pterodactyl panel files.
+  ansible.builtin.unarchive:
+    src: https://github.com/pterodactyl/panel/releases/latest/download/panel.tar.gz
+    dest: "{{ ptero_install_dir }}"
+    remote_src: true
+    owner: www-data
+    group: www-data
+    mode: 0750
+    creates: "{{ ptero_install_dir }}/.env.example"
+
+- name: Set permissions on cache directories.
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: 0755
+    owner: www-data
+    group: www-data
+    recurse: true
+  loop:
+    - "{{ ptero_install_dir }}/storage"
+    - "{{ ptero_install_dir }}/bootstrap/cache"
+
+- name: Copy example environment file.
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ ptero_install_dir }}/.env.example"
+    dest: "{{ ptero_install_dir }}/.env"
+    mode: 0750
+    owner: www-data
+    group: www-data
+    force: false
+
+- name: Install Pterodactyl Panel.
+  ansible.builtin.command:
+    cmd: "{{ ptero_composer_path }} install --no-dev --optimize-autoloader"
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+  become_user: www-data
+
+- name: Generate Panel Encryption Key.
+  ansible.builtin.command:
+    cmd: "{{ ptero_php_path }} artisan key:generate"
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+
+# php artisan p:environment:setup
+- name: Run Artisan Setup.
+  ansible.builtin.command:
+    cmd: |
+      {{ ptero_php_path }} artisan p:environment:setup
+        --author="{{ ptero_email_from_panel }}"
+        --url=https://{{ ptero_panel_domain_name }}
+        --timezone="{{ ptero_timezone }}"
+        --cache="{{ ptero_cache }}"
+        --session="{{ ptero_session }}"
+        --queue="{{ ptero_queue }}"
+        --redis-host="{{ ptero_redis_host }}"
+        --redis-pass="{{ ptero_redis_pass }}"
+        --redis-port="{{ ptero_redis_port }}"
+        --env=production
+        -n
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+  no_log: true
+  become_user: www-data
+
+#php artisan p:environment:database
+- name: Run Artisan Database Setup.
+  ansible.builtin.command:
+    cmd: |
+      {{ ptero_php_path }} artisan p:environment:database
+        --host="{{ ptero_db_host }}"
+        --port="{{ ptero_db_port }}"
+        --database="{{ ptero_db_name }}"
+        --username="{{ ptero_db_user_name }}"
+        --password="{{ ptero_db_user_pass }}"
+        -n
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+  no_log: true
+  become_user: www-data
+
+#php artisan p:environment:mail
+- name: Run Artisan email setup.
+  ansible.builtin.command:
+    cmd: |
+      {{ ptero_php_path }} artisan p:environment:mail
+        --driver="{{ ptero_email_driver }}"
+        --email="{{ ptero_email_from_panel }}"
+        --from="{{ ptero_email_from_panel_name }}"
+        --encryption="{{ ptero_email_encryption }}"
+        -n
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+  no_log: true
+  become_user: www-data
+
+- name: Run Artisan database migration (seeding).
+  ansible.builtin.command:
+    cmd: |
+      {{ ptero_php_path }} artisan migrate --seed --force -n
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+
+- name: Create Pterodactyl Queue Scheduler Cron Job.
+  ansible.builtin.cron:
+    name: Pterodactyl Queue Scheduler
+    job: "{{ ptero_php_path }} {{ ptero_install_dir }}/artisan schedule:run >> /dev/null 2>&1"
+
+- name: Ensure cron daemon is running.
+  ansible.builtin.systemd:
+    name: cron
+    state: started
+    enabled: true
+
+- name: Create Pterodactyl Queue Service.
+  ansible.builtin.template:
+    src: pteroq.service.j2
+    dest: /etc/systemd/system/pteroq.service
+    owner: root
+    group: root
+    mode: 0655
+  notify:
+    - reload systemd
+    - enable daemon

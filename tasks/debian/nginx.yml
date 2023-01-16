@@ -1,0 +1,50 @@
+- name: Debian | Disable default nginx page.
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: restart nginx
+
+- name: Debian | Add Pterodactyl Nginx Config (http).
+  ansible.builtin.template:
+    src: nginx.conf.http.j2
+    dest: "/etc/nginx/sites-available/ptero_{{ ptero_panel_domain_name }}.conf"
+    group: www-data
+    owner: www-data
+    mode: 0655
+  notify: restart nginx
+  when: ptero_nginx_transport == 'http' or ptero_nginx_transport is not defined
+
+- name: Debian | Add Pterodactyl Nginx Config (https).
+  ansible.builtin.template:
+    src: nginx.conf.https.j2
+    dest: "/etc/nginx/sites-available/ptero_{{ ptero_panel_domain_name }}.conf"
+    group: www-data
+    owner: www-data
+    mode: 0655
+  notify: restart nginx
+  when: ptero_nginx_transport == 'https'
+
+- name: Create self-signed CA Private key, if we're not  specifying which cert to use and nginx is configured for https.
+  community.crypto.openssl_privatekey:
+    path: "{{ ptero_openssl_key_dir }}/{{ ptero_panel_domain_name }}-selfsigned.pem"
+  when: ptero_nginx_transport == 'https' and not (ptero_nginx_cert_key is defined and ptero_nginx_cert_crt is defined)
+
+- name: Create self-signed certificate, if we're not specifying which cert to use and nginx is configured for https.
+  community.crypto.x509_certificate:
+    path: "{{ ptero_openssl_cert_dir }}/{{ ptero_panel_domain_name }}-selfsigned.crt"
+    privatekey_path: "{{ ptero_openssl_key_dir }}/{{ ptero_panel_domain_name }}-selfsigned.pem"
+    provider: selfsigned
+  when: ptero_nginx_transport == 'https' and not (ptero_nginx_cert_key is defined and ptero_nginx_cert_crt is defined)
+
+- name: Debian | Enable Pterodactyl Nginx Config.
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/ptero_{{ ptero_panel_domain_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/ptero_{{ ptero_panel_domain_name }}.conf"
+    state: link
+  notify: restart nginx
+
+- name: Ensure nginx service is started.
+  ansible.builtin.systemd:
+    name: nginx.service
+    state: started
+    enabled: true

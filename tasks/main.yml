@@ -1,0 +1,45 @@
+---
+# tasks file for pterodactyl_panel
+
+- name: Include OS-specific variables.
+  ansible.builtin.include_vars: "{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: Debian | Install Prerequisites.
+  ansible.builtin.include_tasks:
+    file: debian/prereqs.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Redhat | Install Prerequisites.
+  ansible.builtin.include_tasks:
+    file: redhat/prereqs.yml
+  when: ansible_os_family == 'Redhat'
+
+- name: Setup nginx.
+  ansible.builtin.include_tasks:
+    file: nginx.yml
+
+- name: Setup Composer.
+  ansible.builtin.include_tasks:
+    file: composer.yml
+
+- name: Check Pterodactyl Panel installed.
+  ansible.builtin.stat:
+    path: "{{ ptero_install_dir }}/.env"
+  register: __ptero_env_exists
+
+- name: Setup Pterodactyl panel.
+  ansible.builtin.include_tasks:
+    file: panel.yml
+  when: not __ptero_env_exists.stat.exists
+
+- name: Create Pterodactyl Panel User.
+  ansible.builtin.include_tasks:
+    file: create-panel-user.yml
+  vars:
+    ptero_panel_user_name: "{{ item.username }}"
+    ptero_panel_user_email: "{{ item.email }}"
+    ptero_panel_user_pass: "{{ item.pass }}"
+    ptero_panel_user_first: "{{ item.first }}"
+    ptero_panel_user_last: "{{ item.last }}"
+    ptero_panel_user_admin: "{{ item.admin }}"
+  loop: "{{ ptero_panel_users }}"

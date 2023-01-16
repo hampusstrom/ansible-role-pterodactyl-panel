@@ -1,0 +1,29 @@
+# Pterodactyl Queue Worker File
+# ----------------------------------
+
+[Unit]
+Description=Pterodactyl Queue Worker
+{% if ansible_os_family == 'Redhat' %}
+After=redis.service
+{% else %}
+After=redis-server.service
+{% endif%}
+
+[Service]
+# On some systems the user and group might be different.
+# Some systems use `apache` or `nginx` as the user and group.
+{% if ansible_os_family == 'Redhat' %}
+User=nginx
+Group=nginx
+{% else %}
+User=www-data
+Group=www-data
+{% endif %}
+Restart=always
+ExecStart={{ ptero_php_path }} {{ ptero_install_dir }}/artisan queue:work --queue=high,standard,low --sleep=3 --tries=3
+StartLimitInterval=180
+StartLimitBurst=30
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

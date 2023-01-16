@@ -1,0 +1,8 @@
+- name: Install Redis.
+  ansible.builtin.include_role:
+    name: geerlingguy.redis
+  vars:
+    redis_port: "{{ ptero_redis_port }}"
+    redis_bind_interface: "{{ ptero_redis_bind_addr }}"
+    redis_pass: "{{ ptero_redis_pass }}"
+  when: ptero_redis_host == "localhost" or ptero_redis_host=="127.0.0.1" or ptero_redis_host is not defined

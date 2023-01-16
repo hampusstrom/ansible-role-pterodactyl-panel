@@ -1,0 +1,24 @@
+---
+# handlers file for pterodactyl_panel
+
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: enable daemon
+  ansible.builtin.systemd:
+    name: pteroq.service
+    state: started
+    enabled: true
+
+- name: enable redis
+  ansible.builtin.systemd:
+    name: redis-server.service
+    state: started
+    enabled: true
+
+- name: restart nginx
+  ansible.builtin.systemd:
+    name: nginx.service
+    state: restarted
+    enabled: true

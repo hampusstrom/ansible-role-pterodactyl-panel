@@ -1,0 +1,79 @@
+---
+  - name: Debian | Update apt caches and upgrade packages before proceeding.
+    ansible.builtin.apt:
+      update_cache: true
+      cache_valid_time: 3600
+      upgrade: true
+
+  # Ansible package installations works better with aptitude.
+  - name: Debian | Ensure aptitude is installed.
+    ansible.builtin.apt:
+      pkg:
+        - aptitude
+      state: present
+
+  - name: Debian | Install Basic Prerequisites (Apt-add-key/repository,pip3,ca-certificates etc.).
+    ansible.builtin.apt:
+      pkg:
+        - apt-transport-https
+        - software-properties-common
+        - curl
+        - ca-certificates
+        - gnupg2
+        - sudo
+        - lsb-release
+        - tar
+        - cron
+        - acl
+        - unzip
+        - git
+        - sudo
+        - python3
+        - python3-pip
+      state: present
+
+  - name: Debian | Add php gpg key.
+    ansible.builtin.apt_key:
+      url: "https://packages.sury.org/php/apt.gpg"
+      state: "present"
+    when: ansible_distribution=='Debian'
+
+  - name: Ubuntu | Add php apt repository.
+    ansible.builtin.apt_repository:
+      repo: ppa:ondrej/php
+      filename: sury-php.list
+      state: present
+    when: ansible_distribution=='Ubuntu'
+
+  - name: Debian | Add php apt repository.
+    ansible.builtin.apt_repository:
+      repo: deb https://packages.sury.org/php/ {{ ansible_distribution_release }} main
+      state: "present"
+    when: ansible_distribution=='Debian'
+
+  - name: Debian | Install php, nginx.
+    ansible.builtin.apt:
+      update_cache: true
+      cache_valid_time: 3600
+      pkg:
+        - php8.1
+        - php8.1-common
+        - php8.1-cli
+        - php8.1-gd
+        - php8.1-mysql
+        - php8.1-mbstring
+        - php8.1-tokenizer
+        - php8.1-bcmath
+        - php8.1-xml
+        - php8.1-dom
+        - php8.1-fpm
+        - php8.1-curl
+        - php8.1-zip
+        - nginx
+      state: present
+
+  - name: Enable php8.1-fdm service.
+    ansible.builtin.systemd:
+      name: php8.1-fpm
+      state: started
+      enabled: true

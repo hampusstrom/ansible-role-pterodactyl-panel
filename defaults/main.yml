@@ -1,0 +1,61 @@
+---
+# defaults file for pterodactyl_panel
+
+# General
+ptero_install_dir: /var/www/pterodactyl
+ptero_panel_domain_name: pterodactyl.example.local
+ptero_timezone: Europe/Stockholm
+
+# Redis
+ptero_redis_host: localhost
+ptero_redis_pass: ""
+ptero_redis_port: 6379
+ptero_redis_bind_addr: 127.0.0.1
+
+# Nginx
+# Pterodactyl panel requires additional nginx configuration
+# if reciding behind a reverse proxy.
+# by settings this value to true the required configuration will be added to your nginx config.
+ptero_nginx_use_reverse_proxy: false
+# should nginx use http or https
+# if https, an automatic redirect from http -> https will also be configured.
+ptero_nginx_transport: https
+ptero_nginx_use_hsts: false
+#ptero_nginx_cert_key: /etc/ssl/private/ssl-cert-snakeoil.key
+#ptero_nginx_cert_pem: /etc/ssl/certs/ssl-cert-snakeoil.pem
+ptero_letsencrypt_enable: false
+ptero_letsencrypt_email: admin@example.com
+
+
+# Email
+# The email driver to use. Mail/SMTP etc.
+ptero_email_driver: mail
+# Which encryption type to use.
+ptero_email_encryption: tls
+# The email address that mail will be sent from.
+ptero_email_from_panel: pterodactyl@example.com
+# The name that will appear in the "From" field of emails sent from Pterodactyl.
+ptero_email_from_panel_name: Pterodactyl
+
+ptero_panel_users:
+  - username: administrator
+    email: admin@example.com
+    first: admin
+    last: istrator
+    pass: 'administrator'
+    admin: 1
+
+# Database
+# The IP/Hostname of the server that hosts the panel database instance.
+ptero_db_host: 127.0.0.1
+# The port that the database server listens on. 3306/TCP is default for MariaDB.
+ptero_db_port: 3306
+# The name of the database instance that pterodactyl should use.
+# Will be created and seeded by this role.
+ptero_db_name: panel
+# The name of the DB user that will own the database instance.
+ptero_db_user_name: pterodactyl
+# The password of the DB user that will own the database instance.
+# ptero_db_user_pass:
+# The root database user password.
+# ptero_db_root_pass: the root user password

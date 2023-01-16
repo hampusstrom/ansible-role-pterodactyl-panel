@@ -1,0 +1,17 @@
+---
+- name: Download Composer setup script.
+  ansible.builtin.uri:
+    url: https://getcomposer.org/installer
+    dest: /tmp/composer
+    mode: 0700
+    owner: root
+    group: root
+  args:
+    creates: "{{ ptero_composer_folder }}/composer"
+
+- name: Install Composer.
+  ansible.builtin.command:
+    cmd: "{{ ptero_php_path }} /tmp/composer --install-dir={{ ptero_composer_folder }} --filename=composer"
+  args:
+    creates: "{{ ptero_composer_folder }}/composer"
+  changed_when: false

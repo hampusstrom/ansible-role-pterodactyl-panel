@@ -1,0 +1,33 @@
+---
+- name: Check if Pterodactyl Panel User already exists.
+  community.mysql.mysql_query:
+    login_db: panel
+    login_user: "{{ ptero_db_user_name }}"
+    login_password: "{{ ptero_db_user_pass }}"
+    query: SELECT * FROM users WHERE username = %(username)s
+    named_args:
+      username: "{{ ptero_panel_user_name }}"
+  register: ptero_panel_user_exists
+
+- name: Generate Pterodactyl Administrator User password.
+  ansible.builtin.set_fact:
+    ptero_admin_pass: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_letters length=32') }}"
+  when: (ptero_panel_user_pass is not defined or ptero_panel_user_pass == '') and ptero_panel_user_exists.rowcount == [0]
+  #no_log: tru
+- name: Create Pterodactyl Administrator User.
+  ansible.builtin.command:
+    cmd: |
+      {{ ptero_php_path }} artisan p:user:make
+        --email={{ ptero_panel_user_email }}
+        --username={{ ptero_panel_user_name }}
+        --name-first={{ ptero_panel_user_first }}
+        --name-last={{ ptero_panel_user_last }}
+        --password={{ ptero_panel_user_pass }}
+        --admin={{ ptero_panel_user_admin | default(0) }}
+        -n
+  args:
+    chdir: "{{ ptero_install_dir }}"
+  changed_when: false
+  #no_log: true
+  become_user: www-data
+  when: ptero_panel_user_exists.rowcount == [0]

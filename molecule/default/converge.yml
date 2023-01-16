@@ -1,0 +1,35 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: true
+  vars:
+    ptero_db_root_password: MyCoolPassword1234!
+    ptero_db_name: panel
+    ptero_db_user_name: pterodactyl
+    ptero_db_user_pass: MyCoolPassword12345!
+    ptero_redis_port: 6379
+    ptero_redis_bind_addr: 127.0.0.1
+  pre_tasks:
+    - name: Setup database.
+      ansible.builtin.include_role:
+        name: geerlingguy.mysql
+      vars:
+        mysql_root_password: "{{ ptero_db_root_password }}"
+        mysql_databases:
+          - name: "{{ ptero_db_name }}"
+            encoding: latin1
+            collation: latin1_general_ci
+        mysql_users:
+          - name: "{{ ptero_db_user_name }}"
+            host: '%'
+            password: "{{ ptero_db_user_pass }}"
+            priv: 'panel.*:ALL'
+
+    - name: Setup redis.
+      ansible.builtin.include_role:
+        name: geerlingguy.redis
+
+  tasks:
+    - name: "Include hampusstrom.pterodactyl_panel"
+      ansible.builtin.include_role:
+        name: "hampusstrom.pterodactyl_panel"
